@@ -1,0 +1,26 @@
+# Number of steps
+500
+# Timestep (fs)
+5.0
+# Number of atoms
+4
+# Mass (amu)
+39.948
+# xyz coordinates (ang)
+  Ar        1.00000        1.00000        1.00000
+  Ar        7.00000        7.00000        7.00000
+  Ar        10.0000        10.0000        10.0000
+  Ar        17.0000        17.0000        17.0000
+# Sigma (ang)
+3.4
+# Epsilon (eV)
+0.0104
+# Velocities xyz (ang/fs)
+0.0 0.0 0.0
+0.0 0.0 0.0
+0.0 0.0 0.0
+0.0 0.0 0.0
+# Temperature (K)
+250.0
+# Size of the box
+20.0 
