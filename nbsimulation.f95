@@ -63,22 +63,12 @@ implicit none
 
 ! Reading input variables by calling the subroutine from the module
 
-  call lecture(filename, positions, atom, velocities, nstep, box_size, temp, mass, timestep, sig, eps, natom)
+  call lecture(filename, positions, atom, nstep, box_size, temp, mass, timestep, sig, eps, natom)
 
 ! Allocate memory
 
   allocate(forces(natom,3), distances(natom,natom))
-
-
-  ! Calculate the volume
-
-  volume = box_size **3
-
-  ! Calculate the density
-
-  density = dble(natom) * mass / volume
-
-  tol = 1.0d-6
+  allocate(velocities(natom,3))
 
 ! Write input parameters
   
@@ -129,8 +119,6 @@ implicit none
   velocities = velocities * ang_to_bohr / fs_to_timeau
   box_size = box_size* ang_to_bohr
 
-
-
 ! Write parameters at step 0 in atomic units
 
   write(6,*)
@@ -163,31 +151,25 @@ implicit none
   enddo
 
   call initialize_velocities(velocities, natom, temp, mass)
-! Compute distances for LJ
+
+  volume = box_size **3
+
+
+  density = natom* mass / volume
+
+  tol = 1.0d-7
 
   call get_distances(positions, distances,box_size, natom)
-
-! Compute LJ forces
-
   call get_forces(forces, virial, distances, positions, sig, eps, natom)
-
-! Calculate total energy
 
   call get_kinetic(velocities, natom, kin_ener, mass)
   call get_potential(distances, natom, sig, eps, pot_ener)
 
   energy = kin_ener + pot_ener
   
-
-! Calculate temperature and pressure
-
   call get_statistic(kin_ener, natom, volume, density, virial, temperature, pressure)
   
-! Initialization of step
-
   step = 0
-
-! Write geometry and energy to the output
 
   time = step * timestep * timeau_to_fs
 
@@ -204,12 +186,7 @@ implicit none
   write(12,*) "# step, time, energy, temperature, pressure, virial, density"
   write(12,*) step, time, energy, temp, pressure, virial, density
 
-
-! Trajectories are computed in a loop that repeats for the number of steps we set
-
   do step = 1, nstep
-
-  ! Calculate velocities using Verlet integration
 
     do i=1,natom
       do j=1,3
@@ -222,8 +199,6 @@ implicit none
     do i=1,natom
       do j=1,3
 
-        ! Aggiorna la posizione
-
         positions(i,j) = positions(i,j) + timestep * velocities(i,j)
         
       enddo
@@ -231,8 +206,6 @@ implicit none
 
     do i=1,natom
       do j=1,3
-
-        ! Applica le PBC (rifoldamento nella scatola)
 
         if (positions(i,j) > box_size) then
 
@@ -255,34 +228,25 @@ implicit none
       enddo
     enddo
 
-  ! Calculate energies by calling the subroutines get_kinetic and get_potential from the module
-
     call get_kinetic(velocities, natom, kin_ener, mass)
     call get_potential(distances, natom, sig, eps, pot_ener)
 
     energy = kin_ener + pot_ener
 
-    ! Check the energy tolerance
-
-  ! Controllo della tolleranza a partire dal secondo step
     if (step > 1 .and. abs(energy - prev_energy) >= tol) then
 
       print *, "Energy difference exceeds tolerance. Stopping simulation at step:", step
 
-      exit  ! Esce dal ciclo principale
+      exit  
 
   endif
 
-    ! Aggiorna l'energia precedente
     prev_energy = energy
-
-    ! Calculate temperature, pressure, and virial
 
     call get_statistic(kin_ener, natom, volume, density, virial, temperature, pressure)
 
     write(6,*) step, ") ", ",   E =", energy, ",   Ek =", kin_ener, ",   Ep =", pot_ener 
 
-  ! Write geometry and energy to the output
 
     time = step * timestep * timeau_to_fs
     write(10,"(I3)") natom                                 
